@@ -33,3 +33,4 @@ of a component, check the `Home Assistant help section <https://home-assistant.i
    :target: https://www.openhomefoundation.org/
 11111111111111111111111111111edit 1.1 at 14:27:00
 edit 1.2 at 14:27:00
+edit 1.3 at 14:27:00
