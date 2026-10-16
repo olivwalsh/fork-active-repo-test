@@ -35,3 +35,4 @@ of a component, check the `Home Assistant help section <https://home-assistant.i
 edit 1.2 at 14:27:00
 edit 1.3 at 14:27:00
 edit 1.5 at 14:27:00
+edit 1.7 at 14:27:00
