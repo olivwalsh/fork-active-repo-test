@@ -48,7 +48,7 @@ Jinja2==3.1.6
 lru-dict==1.4.1
 mutagen==1.48.1
 openai==3.26.0
-orjson==3.11.9
+orjson==3.13.0
 packaging>=23.1
 paho-mqtt==2.1.0
 Pillow==12.3.0
@@ -141,7 +141,7 @@ multidict>=6.0.2
 Brotli>=1.2.0
 
 # ensure pydantic version does not float since it might have breaking changes
-pydantic==2.13.5
+pydantic==2.14.0
 
 # Required for Python 3.14.0 compatibility (#119223).
 mashumaro>=3.17.0
