@@ -14,18 +14,12 @@ EXTRA_BASE_PLATFORMS = {"diagnostics"}
 # Core integrations that do not define __all__ yet.
 # These need to be fixed; do not add new entries to this list.
 MISSING_ALL = {
-    "blueprint",
     "configurator",
-    "group",
     "input_boolean",
     "input_select",
     "llm",
-    "network",
     "person",
-    "shopping_list",
     "sun",
-    "timer",
-    "zone",
 }
 
 _COMPONENT_RE = re.compile(r"homeassistant/components/([^/]+)/\*\*")
