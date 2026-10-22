@@ -736,6 +736,9 @@ bluetooth-auto-recovery==1.6.4
 # homeassistant.components.private_ble_device
 bluetooth-data-tools==1.29.24
 
+# homeassistant.components.bluetti_modbus
+bluetti-modbus==0.51.2
+
 # homeassistant.components.bond
 bond-async==0.2.1
 
@@ -2140,6 +2143,9 @@ pyaprilaire==0.9.1
 # homeassistant.components.aqvify
 pyaqvify==0.0.12
 
+# homeassistant.components.ialarm
+pyasyncialarm==3.1.1
+
 # homeassistant.components.atag
 pyatag==0.3.7.1
 
@@ -2356,9 +2362,6 @@ pyhomematic==0.1.78
 
 # homeassistant.components.homeworks
 pyhomeworks==1.1.2
-
-# homeassistant.components.ialarm
-pyialarm==2.2.0
 
 # homeassistant.components.icloud
 pyicloud==2026.10.1
@@ -3132,7 +3135,7 @@ sentry-sdk==2.48.0
 
 # homeassistant.components.serial
 # homeassistant.components.usb
-serialx==1.14.0
+serialx==1.15.0
 
 # homeassistant.components.sfr_box
 sfrbox-api==0.2.1
@@ -3451,7 +3454,7 @@ viaggiatreno_ha==0.2.4
 victron-ble-ha-parser==0.8.0
 
 # homeassistant.components.victron_gx
-victron-mqtt==2026.9.5
+victron-mqtt==2026.10.1
 
 # homeassistant.components.victron_remote_monitoring
 victron-vrm==0.1.13
