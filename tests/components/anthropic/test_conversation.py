@@ -465,6 +465,42 @@ async def test_conversation_agent(
 
 
 @pytest.mark.usefixtures("mock_init_component")
+async def test_unknown_stream_event(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_create_stream: AsyncMock,
+) -> None:
+    """Ignore unknown SSE events decoded by the SDK and continue the response."""
+    mock_create_stream.return_value = [create_content_block(0, ["Hello!"])]
+    create_stream = mock_create_stream.side_effect
+
+    async def sdk_stream(
+        **kwargs: Unpack[MessageCreateParamsStreaming],
+    ) -> AsyncStream[RawMessageStreamEvent]:
+        stream = create_stream(**kwargs)
+        body = 'event: future_event\ndata: {"type":"future_event"}\n\n' + "".join(
+            [
+                f"event: {event.type}\ndata: {event.to_json(indent=None)}\n\n"
+                async for event in stream
+            ]
+        )
+        return AsyncStream(
+            cast_to=RawMessageStreamEvent,
+            response=Response(200, content=body),
+            client=mock_config_entry.runtime_data.client,
+        )
+
+    mock_create_stream.side_effect = sdk_stream
+
+    result = await conversation.async_converse(
+        hass, "hello", None, Context(), agent_id=ENTITY_ID
+    )
+
+    assert result.response.response_type is intent.IntentResponseType.ACTION_DONE
+    assert result.response.speech["plain"]["speech"] == "Hello!"
+
+
+@pytest.mark.usefixtures("mock_init_component")
 @pytest.mark.parametrize(
     "response_usage",
     [
@@ -1664,7 +1700,9 @@ async def test_double_system_messages(
     """Test error for two or more system prompts."""
     conversation_id = "conversation_id"
     with (
-        chat_session.async_get_chat_session(hass, conversation_id) as session,
+        chat_session.async_get_chat_session(
+            hass, conversation_id, context=None
+        ) as session,
         conversation.async_get_chat_log(hass, session) as chat_log,
     ):
         chat_log.content = [
@@ -3833,7 +3871,9 @@ async def test_history_conversion(
     conversation_id = "conversation_id"
     mock_create_stream.return_value = [create_content_block(0, ["Yes, I am sure!"])]
     with (
-        chat_session.async_get_chat_session(hass, conversation_id) as session,
+        chat_session.async_get_chat_session(
+            hass, conversation_id, context=None
+        ) as session,
         conversation.async_get_chat_log(hass, session) as chat_log,
     ):
         chat_log.content = content
@@ -3862,7 +3902,9 @@ async def test_history_conversion_skips_whitespace_content(
     conversation_id = "conversation_id"
     mock_create_stream.return_value = [create_content_block(0, ["Yes, I am sure!"])]
     with (
-        chat_session.async_get_chat_session(hass, conversation_id) as session,
+        chat_session.async_get_chat_session(
+            hass, conversation_id, context=None
+        ) as session,
         conversation.async_get_chat_log(hass, session) as chat_log,
     ):
         chat_log.content = [
