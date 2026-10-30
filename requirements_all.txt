@@ -2153,7 +2153,7 @@ pyairobotrest==0.4.0
 pyairvisual==2023.08.1
 
 # homeassistant.components.anglian_water
-pyanglianwater==3.3.2
+pyanglianwater==3.3.3
 
 # homeassistant.components.aprilaire
 pyaprilaire==0.9.1
@@ -3216,7 +3216,7 @@ snapcast==2.3.8
 soco==0.31.5
 
 # homeassistant.components.sofar
-sofar-modbus==0.25.2
+sofar-modbus==0.25.3
 
 # homeassistant.components.solaredge
 solaredge-web==0.5.0
@@ -3303,7 +3303,7 @@ switchbot-api==2.13.0
 synology-srm==0.2.0
 
 # homeassistant.components.system_bridge
-systembridgeconnector==5.22.1
+systembridgeconnector==5.23.0
 
 # homeassistant.components.tailscale
 tailscale==1.0.0
