@@ -1722,7 +1722,7 @@ monarchmoneycommunity==1.6.0
 monzopy==1.8.0
 
 # homeassistant.components.mopeka
-mopeka-iot-ble==0.8.0
+mopeka-iot-ble==1.0.0
 
 # homeassistant.components.motion_blinds
 motionblinds==0.6.31
@@ -2231,7 +2231,7 @@ pycsspeechtts==1.0.8
 pycync==0.6.1
 
 # homeassistant.components.daikin
-pydaikin==2.20.0
+pydaikin==2.22.0
 
 # homeassistant.components.danfoss_air
 pydanfossair==1.0.0
