@@ -123,6 +123,7 @@ RPC_CONFIG_STATE_KEYS: dict[str, frozenset[str] | None] = {
     "ui": None,
     "switch": frozenset({"in_locked"}),
     "cover": frozenset({"in_locked"}),
+    "thermostat": frozenset({"enable", "target_C"}),
 }
 
 

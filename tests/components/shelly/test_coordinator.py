@@ -507,6 +507,10 @@ def _inject_config_changed(
         pytest.param("switch:0", {"in_locked", "name"}, 1, id="switch_mixed_keys"),
         pytest.param("cover:0", {"in_locked"}, 0, id="cover_state_key"),
         pytest.param("cover:0", {"name"}, 1, id="cover_other_key"),
+        pytest.param(
+            "thermostat:0", {"enable", "target_C"}, 0, id="thermostat_state_keys"
+        ),
+        pytest.param("thermostat:0", {"type"}, 1, id="thermostat_other_key"),
     ],
 )
 async def test_rpc_cfg_change_refresh(
