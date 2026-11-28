@@ -92,6 +92,13 @@
       'domain': 'webostv',
       'minor_version': 1,
       'options': dict({
+        'sources': list([
+          'Input01',
+        ]),
+        'wake_on_lan': dict({
+          'broadcast_address': '**REDACTED**',
+          'mac': '**REDACTED**',
+        }),
       }),
       'pref_disable_new_entities': False,
       'pref_disable_polling': False,

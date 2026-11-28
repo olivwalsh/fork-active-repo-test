@@ -2,6 +2,8 @@
 
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
+from ipaddress import AddressValueError, IPv4Address
+import re
 from typing import Any, Self, override
 from urllib.parse import urlparse
 
@@ -14,9 +16,15 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlowWithReload,
 )
-from homeassistant.const import CONF_CLIENT_SECRET, CONF_HOST
+from homeassistant.const import (
+    CONF_BROADCAST_ADDRESS,
+    CONF_CLIENT_SECRET,
+    CONF_HOST,
+    CONF_MAC,
+)
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv
+from homeassistant.data_entry_flow import SectionConfig, section
+from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.service_info.ssdp import (
     ATTR_UPNP_FRIENDLY_NAME,
@@ -24,7 +32,7 @@ from homeassistant.helpers.service_info.ssdp import (
     SsdpServiceInfo,
 )
 
-from .const import CONF_SOURCES, DEFAULT_NAME, DOMAIN
+from .const import CONF_SOURCES, CONF_WAKE_ON_LAN, DEFAULT_NAME, DOMAIN
 from .coordinator import WebOsTvConfigEntry
 from .helpers import get_sources
 
@@ -221,31 +229,74 @@ class OptionsFlowHandler(OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
-        errors = {}
+        errors: dict[str, str] = {}
         if user_input is not None:
-            options_input = {CONF_SOURCES: user_input.get(CONF_SOURCES, [])}
-            return self.async_create_entry(title="", data=options_input)
+            options_input: dict[str, Any] = {
+                CONF_SOURCES: user_input.get(CONF_SOURCES, []),
+            }
+            wake_options = user_input.get(CONF_WAKE_ON_LAN, {}).copy()
+            if broadcast_address := wake_options.get(CONF_BROADCAST_ADDRESS):
+                try:
+                    IPv4Address(broadcast_address)
+                except AddressValueError:
+                    errors["base"] = "invalid_broadcast_address"
+            if mac := wake_options.get(CONF_MAC):
+                mac = dr.format_mac(mac)
+                if re.fullmatch(r"(?:[0-9a-f]{2}:){5}[0-9a-f]{2}", mac) is None:
+                    errors["base"] = "invalid_mac"
+                else:
+                    wake_options[CONF_MAC] = mac
+            if not errors:
+                if wake_options:
+                    options_input[CONF_WAKE_ON_LAN] = wake_options
+                return self.async_create_entry(title="", data=options_input)
         entry = self.config_entry
-        option_sources = entry.options.get(CONF_SOURCES, [])
+        option_sources = (user_input if user_input is not None else entry.options).get(
+            CONF_SOURCES, []
+        )
         if (
             entry.state is ConfigEntryState.LOADED
             and (client := entry.runtime_data.client).is_connected()
         ):
             sources_list = get_sources(client.tv_state)
         else:
-            errors["base"] = "cannot_connect"
+            errors.setdefault("base", "cannot_connect")
             sources_list = option_sources
 
         sources = [s for s in option_sources if s in sources_list]
         if not sources:
             sources = sources_list
 
+        wake_options = (user_input if user_input is not None else entry.options).get(
+            CONF_WAKE_ON_LAN, {}
+        )
         options_schema = probatio.Schema(
             {
                 probatio.Optional(
                     CONF_SOURCES,
                     description={"suggested_value": sources},
                 ): cv.multi_select({source: source for source in sources_list}),
+                probatio.Optional(CONF_WAKE_ON_LAN): section(
+                    probatio.Schema(
+                        {
+                            probatio.Optional(
+                                CONF_BROADCAST_ADDRESS,
+                                description={
+                                    "suggested_value": wake_options.get(
+                                        CONF_BROADCAST_ADDRESS
+                                    )
+                                },
+                            ): cv.string,
+                            probatio.Optional(
+                                CONF_MAC,
+                                description={
+                                    "suggested_value": wake_options.get(CONF_MAC)
+                                },
+                            ): cv.string,
+                        }
+                    ),
+                    SectionConfig(collapsed=True),
+                ),
             }
         )
 

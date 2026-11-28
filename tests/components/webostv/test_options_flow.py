@@ -1,10 +1,22 @@
 """Test the LG webOS TV options flow."""
 
+from unittest.mock import MagicMock
+
 import pytest
 from pytest_homeassistant.common import MockConfigEntry
 
-from homeassistant.components.webostv.const import CONF_SOURCES, DOMAIN, LIVE_TV_APP_ID
-from homeassistant.const import CONF_CLIENT_SECRET, CONF_HOST
+from homeassistant.components.webostv.const import (
+    CONF_SOURCES,
+    CONF_WAKE_ON_LAN,
+    DOMAIN,
+    LIVE_TV_APP_ID,
+)
+from homeassistant.const import (
+    CONF_BROADCAST_ADDRESS,
+    CONF_CLIENT_SECRET,
+    CONF_HOST,
+    CONF_MAC,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
@@ -115,3 +127,105 @@ async def test_options_flow_no_sources_selected(hass: HomeAssistant, client) -> 
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == {CONF_SOURCES: []}
+
+
+async def test_wake_options(hass: HomeAssistant, client: MagicMock) -> None:
+    """Save and clear wake-up overrides while preserving selected sources."""
+    entry = await setup_webostv(hass)
+    wake_options = {
+        CONF_BROADCAST_ADDRESS: "192.168.10.255",
+        CONF_MAC: "11:22:33:44:55:66",
+    }
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={CONF_SOURCES: ["Input01"], CONF_WAKE_ON_LAN: wake_options},
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert entry.options == {CONF_SOURCES: ["Input01"], CONF_WAKE_ON_LAN: wake_options}
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert {
+        key.schema: key.description["suggested_value"]
+        for key in result["data_schema"].schema[CONF_WAKE_ON_LAN].schema.schema
+    } == wake_options
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={CONF_SOURCES: ["Input01"], CONF_WAKE_ON_LAN: {}},
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert entry.options == {CONF_SOURCES: ["Input01"]}
+
+
+@pytest.mark.parametrize(
+    ("wake_options", "error"),
+    [
+        pytest.param(
+            {CONF_BROADCAST_ADDRESS: "invalid"},
+            "invalid_broadcast_address",
+            id="invalid-ip",
+        ),
+        pytest.param(
+            {CONF_BROADCAST_ADDRESS: "::1"}, "invalid_broadcast_address", id="ipv6"
+        ),
+        pytest.param({CONF_MAC: "not-a-mac"}, "invalid_mac", id="invalid-mac"),
+        pytest.param({CONF_MAC: "gg:hh:ii:jj:kk:ll"}, "invalid_mac", id="non-hex-mac"),
+    ],
+)
+async def test_invalid_wake_options(
+    hass: HomeAssistant, client: MagicMock, wake_options: dict[str, str], error: str
+) -> None:
+    """Show translated validation errors and allow correcting wake-up options."""
+    entry = await setup_webostv(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={CONF_SOURCES: ["Input01"], CONF_WAKE_ON_LAN: wake_options},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": error}
+    assert entry.options == {}
+    assert {
+        key.schema: key.description["suggested_value"]
+        for key in result["data_schema"].schema[CONF_WAKE_ON_LAN].schema.schema
+    } == {CONF_BROADCAST_ADDRESS: None, CONF_MAC: None} | wake_options
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_SOURCES: ["Input01"],
+            CONF_WAKE_ON_LAN: {CONF_MAC: "AA-BB-CC-DD-EE-FF"},
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert entry.options == {
+        CONF_SOURCES: ["Input01"],
+        CONF_WAKE_ON_LAN: {CONF_MAC: "aa:bb:cc:dd:ee:ff"},
+    }
+
+
+@pytest.mark.parametrize(
+    "mac",
+    [
+        pytest.param("AA:bb:CC:dd:EE:ff", id="mixed-case"),
+        pytest.param("AA-BB-CC-DD-EE-FF", id="hyphens"),
+        pytest.param("AABBCCDDEEFF", id="no-separators"),
+        pytest.param("AABB.CCDD.EEFF", id="dots"),
+    ],
+)
+async def test_normalize_wake_mac(
+    hass: HomeAssistant, client: MagicMock, mac: str
+) -> None:
+    """Normalize common MAC formats before persisting an override."""
+    entry = await setup_webostv(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input={CONF_WAKE_ON_LAN: {CONF_MAC: mac}}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert entry.options[CONF_WAKE_ON_LAN][CONF_MAC] == "aa:bb:cc:dd:ee:ff"
